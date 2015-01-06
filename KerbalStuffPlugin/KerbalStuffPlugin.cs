@@ -44,9 +44,14 @@ namespace KerbalStuffPlugin
                     var url = thumbnail.Children[1].GetAttribute("href");
                     var ksmod_id = int.Parse(url.Split('/')[4]);
 
-                    if (CkanModuleForKerbalStuffID(ksmod_id) != null)
+                    var module = CkanModuleForKerbalStuffID(ksmod_id);
+                    if (module != null)
                     {
                         thumbnail.Children[0].InnerHtml = "<img src=\"https://raw.githubusercontent.com/KSP-CKAN/CKAN-cmdline/master/assets/ckan-64.png\"/>";
+                        if (IsModuleInstalled(module.identifier))
+                        {
+                            thumbnail.Children[0].InnerHtml += "<div style=\"margin-top: 32px;\" class=\"ksp-update\">Installed</div>";
+                        }
                     }
                 }
 
