@@ -24,6 +24,7 @@ namespace LogViewPlugin
             textbox.Multiline = true;
             textbox.Name = "LogViewTextBox";
             textbox.ReadOnly = true;
+            textbox.ScrollBars = ScrollBars.Both;
 
             tabPage.Controls.Add(textbox);
 
@@ -35,6 +36,8 @@ namespace LogViewPlugin
 
             IAppender appender = new LogAppender(textbox);
             h.Root.AddAppender(appender);
+
+            LogManager.GetRepository().Threshold = Level.Info;
         }
 
         public override void Deinitialize()
