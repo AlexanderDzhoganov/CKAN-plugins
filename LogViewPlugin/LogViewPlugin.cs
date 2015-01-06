@@ -48,7 +48,7 @@ namespace LogViewPlugin
 
         public override string GetName()
         {
-            return "LogView";
+            return "LogView by nlight";
         }
 
         public override CKAN.Version GetVersion()
