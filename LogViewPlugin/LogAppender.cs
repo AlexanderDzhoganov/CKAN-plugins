@@ -15,7 +15,7 @@ namespace LogViewPlugin
         {
             m_Textbox = textbox;
             PatternLayout layout = new PatternLayout();
-            layout.ConversionPattern = "%newline%date %-5level %logger – %message – %property%newline";
+            layout.ConversionPattern = "%newline%date %-5level %logger – %message%newline";
             layout.ActivateOptions();
             Layout = layout;
             ActivateOptions();
