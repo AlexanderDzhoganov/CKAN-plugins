@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using mshtml;
 using CKAN;
@@ -11,14 +12,44 @@ namespace KerbalStuffPlugin
 
         private readonly CKAN.Version VERSION = new CKAN.Version("v1.0.0");
 
+        private Dictionary<int, CkanModule> KerbalStuffToCkanMap = new Dictionary<int, CkanModule>();
+
         public override void Initialize()
         {
+            var registry = Main.Instance.CurrentInstance.Registry;
+            var kspVersion = Main.Instance.CurrentInstance.Version();
+
+            foreach (var module in registry.Available(kspVersion))
+            {
+                var latest = registry.LatestAvailable(module.identifier, kspVersion);
+                if (latest.resources != null)
+                {
+                    if (latest.resources.kerbalstuff != null)
+                    {
+                        int ks_id = int.Parse(latest.resources.kerbalstuff.ToString().Split('/')[4]);
+                        KerbalStuffToCkanMap[ks_id] = latest;
+                    }
+                }
+            }
+
             var webBrowser = new WebBrowser();
             webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
             webBrowser.Url = new System.Uri("http://kerbalstuff.com", System.UriKind.Absolute);
 
             webBrowser.DocumentCompleted += (sender, args) =>
             {
+                var thumbnails = GetElementsByClass(webBrowser.Document, "thumbnail");
+                foreach (var thumbnail in thumbnails)
+                {
+                    var url = thumbnail.Children[1].GetAttribute("href");
+                    var ksmod_id = int.Parse(url.Split('/')[4]);
+
+                    if (CkanModuleForKerbalStuffID(ksmod_id) != null)
+                    {
+                        thumbnail.Children[0].InnerHtml = "<img src=\"https://raw.githubusercontent.com/KSP-CKAN/CKAN-cmdline/master/assets/ckan-64.png\"/>";
+                    }
+                }
+
                 HtmlElement downloadLink = webBrowser.Document.GetElementById("download-link-primary");
                 if (downloadLink == null)
                 {
@@ -41,11 +72,34 @@ namespace KerbalStuffPlugin
                 if (ckanModule != null)
                 {
                     downloadLink.SetAttribute("href", "#" + mod_id.ToString());
-                    downloadLink.InnerHtml = "Add to CKAN install";
-                }
-                else
-                {
-                    downloadLink.InnerHtml += "(Manually)";
+
+                    if (IsModuleInstalled(ckanModule.identifier))
+                    {
+                        downloadLink.InnerHtml = "Installed";
+                    }
+                    else if (IsModuleSelectedForInstall(ckanModule.identifier))
+                    {
+                        downloadLink.InnerHtml = "Selected for install";
+                    }
+                    else
+                    {
+                        downloadLink.InnerHtml = "Add to CKAN install";
+
+                        webBrowser.Document.Body.MouseDown += (o, e) =>
+                        {
+                            switch (e.MouseButtonsPressed)
+                            {
+                                case MouseButtons.Left:
+                                    HtmlElement element = webBrowser.Document.GetElementFromPoint(e.ClientMousePosition);
+                                    if (element != null && element.Id == "download-link-primary")
+                                    {
+                                        SelectModuleForInstall(ckanModule.identifier);
+                                    }
+
+                                    break;
+                            }
+                        };
+                    }
                 }
             };
 
@@ -57,6 +111,12 @@ namespace KerbalStuffPlugin
 
             Main.Instance.m_TabController.m_TabPages.Add("KerbalStuffBrowser", tabPage);
             Main.Instance.m_TabController.ShowTab("KerbalStuffBrowser", 1, false);
+        }
+        static IEnumerable<HtmlElement> GetElementsByClass(HtmlDocument doc, string className)
+        {
+            foreach (HtmlElement e in doc.All)
+                if (e.GetAttribute("className") == className)
+                    yield return e;
         }
 
         public override void Deinitialize()
@@ -105,35 +165,25 @@ namespace KerbalStuffPlugin
 
         private void SelectModuleForInstall(string identifier)
         {
-            
+            foreach (DataGridViewRow row in Main.Instance.ModList.Rows)
+            {
+                var mod = ((GUIMod) row.Tag);
+                if (mod.Identifier == identifier)
+                {
+                    (row.Cells[0] as DataGridViewCheckBoxCell).Value = true;
+                    mod.IsInstallChecked = true;
+                }
+            }
         }
 
         private CkanModule CkanModuleForKerbalStuffID(int id)
         {
-            if (id <= 0)
+            if (!KerbalStuffToCkanMap.ContainsKey(id))
             {
                 return null;
             }
 
-            var registry = Main.Instance.CurrentInstance.Registry;
-            var kspVersion = Main.Instance.CurrentInstance.Version();
-
-            foreach (var module in registry.Available(kspVersion))
-            {
-                var latest = registry.LatestAvailable(module.identifier, kspVersion);
-                if (latest.resources != null)
-                {
-                    if (latest.resources.kerbalstuff != null)
-                    {
-                        if (latest.resources.kerbalstuff.ToString().Split('/')[4] == id.ToString())
-                        {
-                            return latest;
-                        }
-                    }
-                }
-            }
-
-            return null;
+            return KerbalStuffToCkanMap[id];
         }
 
     }
