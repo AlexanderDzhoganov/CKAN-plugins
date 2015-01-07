@@ -6,6 +6,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using CKAN;
@@ -14,12 +15,23 @@ using Newtonsoft.Json;
 namespace PartManagerPlugin
 {
 
+    public enum FilterType
+    {
+        Path,
+        Name,
+        Title
+    }
+
     public partial class PartManagerUI : UserControl
     {
 
         private Dictionary<string, string> m_DisabledParts = new Dictionary<string, string>();
 
         private readonly string ConfigPath = "PartManager/PartManager.json";
+
+        private string m_Filter = null;
+        private bool m_FilterRegex = false;
+        private FilterType m_FilterType;
 
         private void LoadConfig()
         {
@@ -50,6 +62,24 @@ namespace PartManagerPlugin
 
             var json = JsonConvert.SerializeObject(config);
             File.WriteAllText(fullPath, json);
+        }
+
+        private void RemovePartFromCache(string part)
+        {
+            var partManagerPath = Path.Combine(Main.Instance.CurrentInstance.CkanDir(), "PartManager");
+            if (!Directory.Exists(partManagerPath))
+            {
+                Directory.CreateDirectory(partManagerPath);
+            }
+
+            var cachePath = Path.Combine(partManagerPath, "cache");
+            if (!Directory.Exists(cachePath))
+            {
+                Directory.CreateDirectory(cachePath);
+            }
+
+            var fullPath = Path.Combine(cachePath, part);
+            File.Delete(fullPath);
         }
 
         private void MovePartToCache(string part)
@@ -93,15 +123,11 @@ namespace PartManagerPlugin
             }
 
             var fullPath = Path.Combine(cachePath, part);
-            if (!Directory.Exists(fullPath))
-            {
-                return;
-            }
-
             var targetPath = Path.Combine(Main.Instance.CurrentInstance.GameDir(), part);
+
             try
             {
-                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(targetPath));
+                Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
             }
             catch (Exception) {}
 
@@ -116,6 +142,24 @@ namespace PartManagerPlugin
         private void PartManagerUI_Load(object sender, EventArgs e)
         {
             LoadConfig();
+            RefreshInstalledModsList();
+        }
+
+        public void OnModChanged(CkanModule module, GUIModChangeType changeType)
+        {
+            if (changeType == GUIModChangeType.Update || changeType == GUIModChangeType.Install)
+            {
+                var parts = GetInstalledModParts(module.identifier);
+                foreach (var part in parts)
+                {
+                    if (m_DisabledParts.ContainsKey(part.Key))
+                    {
+                        RemovePartFromCache(part.Key);
+                        MovePartToCache(part.Key);
+                    }
+                }
+            }
+
             RefreshInstalledModsList();
         }
 
@@ -191,41 +235,96 @@ namespace PartManagerPlugin
 
         private void InstalledModsListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (InstalledModsListBox.SelectedItem == null)
+            if (InstalledModsListBox.SelectedItems == null || InstalledModsListBox.SelectedItems.Count == 0)
             {
                 return;
             }
 
-            var item = (InstalledModsListBox.SelectedItem as string).Split('|');
-            var identifier = item[0].Trim();
-
-            var parts = GetInstalledModParts(identifier);
-
             PartsGridView.Rows.Clear();
 
-            foreach (var part in parts)
+            foreach (var selectedItem in InstalledModsListBox.SelectedItems)
             {
-                var row = new DataGridViewRow();
-                row.Tag = part;
+                var item = (selectedItem as string).Split('|');
+                var identifier = item[0].Trim();
 
-                var enabledCheckbox = new DataGridViewCheckBoxCell();
-                enabledCheckbox.Value = !m_DisabledParts.ContainsKey(part.Key);
-                row.Cells.Add(enabledCheckbox);
+                var parts = GetInstalledModParts(identifier);
 
-                var titleTextbox = new DataGridViewTextBoxCell();
-                var configNode = LoadPart(part.Key);
-                titleTextbox.Value = configNode.GetValue("title");
-                row.Cells.Add(titleTextbox);
+                foreach (var part in parts)
+                {
+                    if (m_FilterType == FilterType.Path && !FilterString(part.Key))
+                    {
+                        continue;
+                    }
 
-                var nameTextbox = new DataGridViewTextBoxCell();
-                nameTextbox.Value = part.Value;
-                row.Cells.Add(nameTextbox);
+                    var row = new DataGridViewRow();
+                    row.Tag = part;
 
-                var pathTextbox = new DataGridViewTextBoxCell();
-                pathTextbox.Value = part.Key;
-                row.Cells.Add(pathTextbox);
+                    var enabledCheckbox = new DataGridViewCheckBoxCell();
+                    enabledCheckbox.Value = !m_DisabledParts.ContainsKey(part.Key);
+                    row.Cells.Add(enabledCheckbox);
 
-                PartsGridView.Rows.Add(row);
+                    var titleTextbox = new DataGridViewTextBoxCell();
+                    var configNode = LoadPart(part.Key);
+                    var title = configNode.GetValue("title");
+
+                    if (m_FilterType == FilterType.Title && !FilterString(title))
+                    {
+                        continue;
+                    }
+
+                    titleTextbox.Value = title;
+
+                    row.Cells.Add(titleTextbox);
+
+                    var nameTextbox = new DataGridViewTextBoxCell();
+                    nameTextbox.Value = part.Value;
+                    row.Cells.Add(nameTextbox);
+
+                    if (m_FilterType == FilterType.Name && !FilterString(part.Value))
+                    {
+                        continue;
+                    }
+
+                    var pathTextbox = new DataGridViewTextBoxCell();
+                    pathTextbox.Value = part.Key;
+                    row.Cells.Add(pathTextbox);
+
+                    PartsGridView.Rows.Add(row);
+                }
+            }
+        }
+
+        private bool FilterString(string value)
+        {
+            if (m_Filter == null)
+            {
+                return true;
+            }
+
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (m_Filter.Length == 0)
+            {
+                return true;
+            }
+
+            if (m_FilterRegex)
+            {
+                try
+                {
+                    return Regex.IsMatch(value, m_Filter);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return value.ToLower().Contains(m_Filter);
             }
         }
 
@@ -277,5 +376,28 @@ namespace PartManagerPlugin
                 SaveConfig();
             }
         }
+
+        private void ApplyFilterButton_Click(object sender, EventArgs e)
+        {
+            m_Filter = FilterTextBox.Text.ToLower();
+            m_FilterRegex = RegexCheckbox.Checked;
+            try
+            {
+                m_FilterType = (FilterType)Enum.Parse(typeof(FilterType), FilterTypeCombobox.Text, true);
+            }
+            catch (Exception)
+            {
+                FilterTypeCombobox.Text = "Path";
+                m_FilterType = FilterType.Path;                
+            }
+            InstalledModsListBox_SelectedIndexChanged(null, new EventArgs());
+        }
+
+        private void ClearFilterbutton_Click(object sender, EventArgs e)
+        {
+            m_Filter = null;
+            InstalledModsListBox_SelectedIndexChanged(null, new EventArgs());
+        }
+
     }
 }
