@@ -264,7 +264,7 @@ namespace PartManagerPlugin
             }
             else
             {
-                return value.ToLower().Contains(m_Filter);
+                return value.ToLower().Contains(m_Filter.ToLower());
             }
         }
 
@@ -319,7 +319,7 @@ namespace PartManagerPlugin
 
         private void ApplyFilterButton_Click(object sender, EventArgs e)
         {
-            m_Filter = FilterTextBox.Text.ToLower();
+            m_Filter = FilterTextBox.Text;
             m_FilterRegex = RegexCheckbox.Checked;
             try
             {
