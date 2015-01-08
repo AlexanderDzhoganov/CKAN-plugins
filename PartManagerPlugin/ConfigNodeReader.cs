@@ -11,9 +11,6 @@ namespace PartManagerPlugin
             ConfigNode returnNode = new ConfigNode();
             using (StringReader sr = new StringReader(inputString))
             {
-                int objectLevel = 0;
-                string passName = "";
-                StringBuilder passData = null;
                 string previousLine = null;
                 string currentLine = null;
 

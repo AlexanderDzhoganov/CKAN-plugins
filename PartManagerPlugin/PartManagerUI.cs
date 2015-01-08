@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using CKAN;
 using Newtonsoft.Json;
@@ -25,7 +20,7 @@ namespace PartManagerPlugin
     public partial class PartManagerUI : UserControl
     {
 
-        private Dictionary<string, string> m_DisabledParts = new Dictionary<string, string>();
+        private Dictionary<string, ConfigNode> m_DisabledParts = new Dictionary<string, ConfigNode>();
 
         private readonly string ConfigPath = "PartManager/PartManager.json";
 
@@ -41,11 +36,23 @@ namespace PartManagerPlugin
                 return;
             }
 
+            var partManagerPath = Path.Combine(Main.Instance.CurrentInstance.CkanDir(), "PartManager");
+            if (!Directory.Exists(partManagerPath))
+            {
+                Directory.CreateDirectory(partManagerPath);
+            }
+
+            var cachePath = Path.Combine(partManagerPath, "cache");
+            if (!Directory.Exists(cachePath))
+            {
+                Directory.CreateDirectory(cachePath);
+            }
+
             var json = File.ReadAllText(fullPath);
             PartManagerConfig config = (PartManagerConfig) JsonConvert.DeserializeObject<PartManagerConfig>(json);
             foreach (var item in config.disabledParts)
             {
-                m_DisabledParts.Add(item.Key, item.Value);
+                m_DisabledParts.Add(item.Key, ConfigNodeReader.FileToConfigNode(Path.Combine(cachePath, item.Key)));
             }
         }
 
@@ -58,80 +65,14 @@ namespace PartManagerPlugin
             }
 
             PartManagerConfig config = new PartManagerConfig();
-            config.disabledParts = m_DisabledParts.ToList();
+            config.disabledParts = new List<KeyValuePair<string, string>>();
+            foreach (var part in m_DisabledParts)
+            {
+                config.disabledParts.Add(new KeyValuePair<string, string>(part.Key, null));
+            }
 
             var json = JsonConvert.SerializeObject(config);
             File.WriteAllText(fullPath, json);
-        }
-
-        private void RemovePartFromCache(string part)
-        {
-            var partManagerPath = Path.Combine(Main.Instance.CurrentInstance.CkanDir(), "PartManager");
-            if (!Directory.Exists(partManagerPath))
-            {
-                Directory.CreateDirectory(partManagerPath);
-            }
-
-            var cachePath = Path.Combine(partManagerPath, "cache");
-            if (!Directory.Exists(cachePath))
-            {
-                Directory.CreateDirectory(cachePath);
-            }
-
-            var fullPath = Path.Combine(cachePath, part);
-            File.Delete(fullPath);
-        }
-
-        private void MovePartToCache(string part)
-        {
-            var partManagerPath = Path.Combine(Main.Instance.CurrentInstance.CkanDir(), "PartManager");
-            if (!Directory.Exists(partManagerPath))
-            {
-                Directory.CreateDirectory(partManagerPath);
-            }
-
-            var cachePath = Path.Combine(partManagerPath, "cache");
-            if (!Directory.Exists(cachePath))
-            {
-                Directory.CreateDirectory(cachePath);
-            }
-
-            var fullPath = Path.Combine(Main.Instance.CurrentInstance.GameDir(), part);
-            var targetPath = Path.Combine(cachePath, part);
-
-            try
-            {
-                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(targetPath));
-            }
-            catch (Exception) {}
-
-            File.Move(fullPath, targetPath);
-        }
-
-        private void MovePartFromCache(string part)
-        {
-            var partManagerPath = Path.Combine(Main.Instance.CurrentInstance.CkanDir(), "PartManager");
-            if (!Directory.Exists(partManagerPath))
-            {
-                Directory.CreateDirectory(partManagerPath);
-            }
-
-            var cachePath = Path.Combine(partManagerPath, "cache");
-            if (!Directory.Exists(cachePath))
-            {
-                Directory.CreateDirectory(cachePath);
-            }
-
-            var fullPath = Path.Combine(cachePath, part);
-            var targetPath = Path.Combine(Main.Instance.CurrentInstance.GameDir(), part);
-
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-            }
-            catch (Exception) {}
-
-            File.Move(fullPath, targetPath);
         }
 
         public PartManagerUI()
@@ -154,8 +95,8 @@ namespace PartManagerPlugin
                 {
                     if (m_DisabledParts.ContainsKey(part.Key))
                     {
-                        RemovePartFromCache(part.Key);
-                        MovePartToCache(part.Key);
+                        Cache.RemovePartFromCache(part.Key);
+                        Cache.MovePartToCache(part.Key);
                     }
                 }
             }
@@ -179,7 +120,7 @@ namespace PartManagerPlugin
             }
         }
 
-        private Dictionary<string, string> GetInstalledModParts(string identifier)
+        private Dictionary<string, ConfigNode> GetInstalledModParts(string identifier)
         {
             var registry = Main.Instance.CurrentInstance.Registry;
             var module = registry.InstalledModule(identifier);
@@ -189,7 +130,7 @@ namespace PartManagerPlugin
                 return null;
             }
 
-            Dictionary<string, string> parts = new Dictionary<string, string>();
+            Dictionary<string, ConfigNode> parts = new Dictionary<string, ConfigNode>();
 
             foreach (var item in module.Files)
             {
@@ -199,14 +140,14 @@ namespace PartManagerPlugin
                     continue;
                 }
 
-                var filename = System.IO.Path.GetFileName(item);
+                var filename = Path.GetFileName(item);
 
                 if (filename.EndsWith(".cfg"))
                 {
                     var configNode = LoadPart(item);
                     if (configNode != null)
                     {
-                        parts.Add(item, configNode.GetValue("name"));
+                        parts.Add(item, configNode);
                     }
                 }
             }
@@ -264,8 +205,7 @@ namespace PartManagerPlugin
                     row.Cells.Add(enabledCheckbox);
 
                     var titleTextbox = new DataGridViewTextBoxCell();
-                    var configNode = LoadPart(part.Key);
-                    var title = configNode.GetValue("title");
+                    var title = part.Value.GetValue("title");
 
                     if (m_FilterType == FilterType.Title && !FilterString(title))
                     {
@@ -277,10 +217,10 @@ namespace PartManagerPlugin
                     row.Cells.Add(titleTextbox);
 
                     var nameTextbox = new DataGridViewTextBoxCell();
-                    nameTextbox.Value = part.Value;
+                    nameTextbox.Value = part.Value.GetValue("name");
                     row.Cells.Add(nameTextbox);
 
-                    if (m_FilterType == FilterType.Name && !FilterString(part.Value))
+                    if (m_FilterType == FilterType.Name && !FilterString(part.Value.GetValue("name")))
                     {
                         continue;
                     }
@@ -349,7 +289,7 @@ namespace PartManagerPlugin
                 return;
             }
 
-            var part = (KeyValuePair<string, string>) row.Tag;
+            var part = (KeyValuePair<string, ConfigNode>) row.Tag;
 
             var gridViewCell = row.Cells[columnIndex] as DataGridViewCheckBoxCell;
             var state = (bool)gridViewCell.Value;
@@ -361,7 +301,7 @@ namespace PartManagerPlugin
                 }
 
                 m_DisabledParts.Add(part.Key, part.Value);
-                MovePartToCache(part.Key);
+                Cache.MovePartToCache(part.Key);
                 SaveConfig();
             }
             else
@@ -372,7 +312,7 @@ namespace PartManagerPlugin
                 }
 
                 m_DisabledParts.Remove(part.Key);
-                MovePartFromCache(part.Key);
+                Cache.MovePartFromCache(part.Key);
                 SaveConfig();
             }
         }
@@ -397,6 +337,22 @@ namespace PartManagerPlugin
         {
             m_Filter = null;
             InstalledModsListBox_SelectedIndexChanged(null, new EventArgs());
+        }
+
+        private void EnableAllButton_Click(object sender, EventArgs e)
+        {
+            foreach (DataGridViewRow row in PartsGridView.Rows)
+            {
+                (row.Cells[0] as DataGridViewCheckBoxCell).Value = true;
+            }
+        }
+
+        private void DisableAllButton_Click(object sender, EventArgs e)
+        {
+            foreach (DataGridViewRow row in PartsGridView.Rows)
+            {
+                (row.Cells[0] as DataGridViewCheckBoxCell).Value = false;
+            }
         }
 
     }
