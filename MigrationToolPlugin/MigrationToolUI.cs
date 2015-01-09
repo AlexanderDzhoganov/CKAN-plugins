@@ -26,6 +26,17 @@ namespace MigrationToolPlugin
             m_BackgroundWorker.DoWork += MigrateMods;
             SetStatus("Waiting for user");
             SetProgress(0);
+
+            Closing += (sender, args) =>
+            {
+                if (m_BackgroundWorker.IsBusy)
+                {
+                    args.Cancel = true;
+                    return;
+                }
+
+                Main.Instance.UpdateRepo();
+            };
         }
 
         void SetStatus(string message)
@@ -169,7 +180,6 @@ namespace MigrationToolPlugin
 
             Main.Instance.CurrentInstance.ScanGameData();
             RefreshModsList();
-            Main.Instance.UpdateRepo();
             Main.Instance.Enabled = false;
             SetStatus("Waiting for user");
             SetProgress(0);
@@ -223,6 +233,7 @@ namespace MigrationToolPlugin
 
         private void MigrateAllButton_Click(object sender, EventArgs e)
         {
+            Enabled = false;
             var mods = new List<string>();
             foreach (var item in PossibleMigrateModsListBox.Items)
             {
