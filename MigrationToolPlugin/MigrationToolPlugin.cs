@@ -28,8 +28,9 @@ namespace MigrationToolPlugin
      
         public override void Deinitialize()
         {
-       
+            Main.Instance.settingsToolStripMenuItem.DropDownItems.Remove(m_MenuItem);
         }
+
         private void menuItem_Click(object sender, EventArgs e)
         {
             Main.Instance.Enabled = false;
