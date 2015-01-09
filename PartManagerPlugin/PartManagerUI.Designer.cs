@@ -31,19 +31,19 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.InstalledModsListBox = new System.Windows.Forms.ListBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.DisableAllButton = new System.Windows.Forms.Button();
+            this.EnableAllButton = new System.Windows.Forms.Button();
             this.PartsGridView = new System.Windows.Forms.DataGridView();
+            this.EnabledColumn = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.TitleColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PartNameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PathColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.FilterTextBox = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.RegexCheckbox = new System.Windows.Forms.CheckBox();
             this.ApplyFilterButton = new System.Windows.Forms.Button();
             this.FilterTypeCombobox = new System.Windows.Forms.ComboBox();
             this.ClearFilterbutton = new System.Windows.Forms.Button();
-            this.EnabledColumn = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-            this.TitleColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PartNameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PathColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.EnableAllButton = new System.Windows.Forms.Button();
-            this.DisableAllButton = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.PartsGridView)).BeginInit();
@@ -88,6 +88,28 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Mod parts";
             // 
+            // DisableAllButton
+            // 
+            this.DisableAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.DisableAllButton.Location = new System.Drawing.Point(87, 464);
+            this.DisableAllButton.Name = "DisableAllButton";
+            this.DisableAllButton.Size = new System.Drawing.Size(75, 23);
+            this.DisableAllButton.TabIndex = 9;
+            this.DisableAllButton.Text = "Disable all";
+            this.DisableAllButton.UseVisualStyleBackColor = true;
+            this.DisableAllButton.Click += new System.EventHandler(this.DisableAllButton_Click);
+            // 
+            // EnableAllButton
+            // 
+            this.EnableAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.EnableAllButton.Location = new System.Drawing.Point(6, 464);
+            this.EnableAllButton.Name = "EnableAllButton";
+            this.EnableAllButton.Size = new System.Drawing.Size(75, 23);
+            this.EnableAllButton.TabIndex = 8;
+            this.EnableAllButton.Text = "Enable all";
+            this.EnableAllButton.UseVisualStyleBackColor = true;
+            this.EnableAllButton.Click += new System.EventHandler(this.EnableAllButton_Click);
+            // 
             // PartsGridView
             // 
             this.PartsGridView.AllowUserToAddRows = false;
@@ -110,6 +132,33 @@
             this.PartsGridView.Size = new System.Drawing.Size(616, 439);
             this.PartsGridView.TabIndex = 0;
             this.PartsGridView.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.PartsGridView_CellValueChanged);
+            // 
+            // EnabledColumn
+            // 
+            this.EnabledColumn.HeaderText = "Enabled";
+            this.EnabledColumn.Name = "EnabledColumn";
+            this.EnabledColumn.Width = 52;
+            // 
+            // TitleColumn
+            // 
+            this.TitleColumn.HeaderText = "Title";
+            this.TitleColumn.Name = "TitleColumn";
+            this.TitleColumn.ReadOnly = true;
+            this.TitleColumn.Width = 52;
+            // 
+            // PartNameColumn
+            // 
+            this.PartNameColumn.HeaderText = "Part name";
+            this.PartNameColumn.Name = "PartNameColumn";
+            this.PartNameColumn.ReadOnly = true;
+            this.PartNameColumn.Width = 80;
+            // 
+            // PathColumn
+            // 
+            this.PathColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.PathColumn.HeaderText = "Path";
+            this.PathColumn.Name = "PathColumn";
+            this.PathColumn.ReadOnly = true;
             // 
             // FilterTextBox
             // 
@@ -162,6 +211,7 @@
             // 
             // ClearFilterbutton
             // 
+            this.ClearFilterbutton.Enabled = false;
             this.ClearFilterbutton.Location = new System.Drawing.Point(837, 11);
             this.ClearFilterbutton.Name = "ClearFilterbutton";
             this.ClearFilterbutton.Size = new System.Drawing.Size(75, 23);
@@ -169,55 +219,6 @@
             this.ClearFilterbutton.Text = "Clear filter";
             this.ClearFilterbutton.UseVisualStyleBackColor = true;
             this.ClearFilterbutton.Click += new System.EventHandler(this.ClearFilterbutton_Click);
-            // 
-            // EnabledColumn
-            // 
-            this.EnabledColumn.HeaderText = "Enabled";
-            this.EnabledColumn.Name = "EnabledColumn";
-            this.EnabledColumn.Width = 52;
-            // 
-            // TitleColumn
-            // 
-            this.TitleColumn.HeaderText = "Title";
-            this.TitleColumn.Name = "TitleColumn";
-            this.TitleColumn.ReadOnly = true;
-            this.TitleColumn.Width = 52;
-            // 
-            // PartNameColumn
-            // 
-            this.PartNameColumn.HeaderText = "Part name";
-            this.PartNameColumn.Name = "PartNameColumn";
-            this.PartNameColumn.ReadOnly = true;
-            this.PartNameColumn.Width = 80;
-            // 
-            // PathColumn
-            // 
-            this.PathColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.PathColumn.HeaderText = "Path";
-            this.PathColumn.Name = "PathColumn";
-            this.PathColumn.ReadOnly = true;
-            // 
-            // EnableAllButton
-            // 
-            this.EnableAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.EnableAllButton.Location = new System.Drawing.Point(6, 464);
-            this.EnableAllButton.Name = "EnableAllButton";
-            this.EnableAllButton.Size = new System.Drawing.Size(75, 23);
-            this.EnableAllButton.TabIndex = 8;
-            this.EnableAllButton.Text = "Enable all";
-            this.EnableAllButton.UseVisualStyleBackColor = true;
-            this.EnableAllButton.Click += new System.EventHandler(this.EnableAllButton_Click);
-            // 
-            // DisableAllButton
-            // 
-            this.DisableAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.DisableAllButton.Location = new System.Drawing.Point(87, 464);
-            this.DisableAllButton.Name = "DisableAllButton";
-            this.DisableAllButton.Size = new System.Drawing.Size(75, 23);
-            this.DisableAllButton.TabIndex = 9;
-            this.DisableAllButton.Text = "Disable all";
-            this.DisableAllButton.UseVisualStyleBackColor = true;
-            this.DisableAllButton.Click += new System.EventHandler(this.DisableAllButton_Click);
             // 
             // PartManagerUI
             // 

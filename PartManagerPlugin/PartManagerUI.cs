@@ -321,6 +321,8 @@ namespace PartManagerPlugin
         {
             m_Filter = FilterTextBox.Text;
             m_FilterRegex = RegexCheckbox.Checked;
+            ClearFilterbutton.Enabled = true;
+
             try
             {
                 m_FilterType = (FilterType)Enum.Parse(typeof(FilterType), FilterTypeCombobox.Text, true);
@@ -335,6 +337,7 @@ namespace PartManagerPlugin
 
         private void ClearFilterbutton_Click(object sender, EventArgs e)
         {
+            ClearFilterbutton.Enabled = false;
             m_Filter = null;
             InstalledModsListBox_SelectedIndexChanged(null, new EventArgs());
         }
