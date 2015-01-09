@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using CKAN;
 using ICSharpCode.SharpZipLib.Zip;
@@ -65,85 +66,88 @@ namespace MigrationToolPlugin
 
             var registry = Main.Instance.CurrentInstance.Registry;
 
-            var identifier =
-                (string)e.Argument;
+            var identifiers =
+                (List<string>)e.Argument;
 
-            CkanModule module = null;
-
-            try
+            foreach (var identifier in identifiers)
             {
-                module = registry.LatestAvailable(identifier, Main.Instance.CurrentInstance.Version());
-            }
-            catch (Exception ex)
-            {
-                e.Result = ex;
-                return;
-            }
+                CkanModule module = null;
 
-            if (module == null)
-            {
-                e.Result = null;
-                return;
-            }
-
-            var installer = ModuleInstaller.GetInstance(Main.Instance.CurrentInstance, Main.Instance.m_User);
-            SetStatus(String.Format("Downloading mod - {0}", identifier));
-            string zip = installer.CachedOrDownload(module);
-
-            var files = ModuleInstaller.FindInstallableFiles(module, new ZipFile(zip), Main.Instance.CurrentInstance);
-
-            SetStatus(String.Format("Removing existing files for {0}", identifier));
-
-            foreach (var file in files)
-            {
-                if (File.Exists(file.destination))
-                {
-                    try
-                    {
-                        File.Delete(file.destination);
-                        log.InfoFormat("Deleted \"{0}\"", file);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.WarnFormat("Failed to delete \"{0}\" - {1}", file, ex.Message);
-                        break;
-                    }
-                }
-            }
-
-            SetStatus("Scanning GameData");
-            Main.Instance.CurrentInstance.ScanGameData();
-
-            SetStatus("Unregistering auto-detected module");
-           // registry.DeregisterModule(Main.Instance.CurrentInstance, identifier);
-
-            var opts = new RelationshipResolverOptions()
-            {
-                with_all_suggests = false,
-                with_recommends = true,
-                with_suggests = false,
-                without_toomanyprovides_kraken = true
-            };
-
-            SetStatus(String.Format("Installing {0} using CKAN", identifier));
-            installer.User = new NullUser();
-
-            bool success = false;
-            while (!success)
-            {
                 try
                 {
-                    installer.InstallList(new List<string>() { identifier }, opts);
-                    success = true;
-                }
-                catch (FileExistsKraken ex)
-                {
-                    File.Delete(Path.Combine(Main.Instance.CurrentInstance.GameDir(), ex.filename));
+                    module = registry.LatestAvailable(identifier, Main.Instance.CurrentInstance.Version());
                 }
                 catch (Exception ex)
                 {
                     e.Result = ex;
                     return;
+                }
+
+                if (module == null)
+                {
+                    e.Result = null;
+                    return;
+                }
+
+                var installer = ModuleInstaller.GetInstance(Main.Instance.CurrentInstance, Main.Instance.m_User);
+                SetStatus(String.Format("Downloading mod - {0}", identifier));
+                string zip = installer.CachedOrDownload(module);
+
+                var files = ModuleInstaller.FindInstallableFiles(module, new ZipFile(zip), Main.Instance.CurrentInstance);
+
+                SetStatus(String.Format("Removing existing files for {0}", identifier));
+
+                foreach (var file in files)
+                {
+                    if (File.Exists(file.destination))
+                    {
+                        try
+                        {
+                            File.Delete(file.destination);
+                            log.InfoFormat("Deleted \"{0}\"", file);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.WarnFormat("Failed to delete \"{0}\" - {1}", file, ex.Message);
+                            break;
+                        }
+                    }
+                }
+
+                SetStatus("Scanning GameData");
+                Main.Instance.CurrentInstance.ScanGameData();
+
+                SetStatus("Unregistering auto-detected module");
+                // registry.DeregisterModule(Main.Instance.CurrentInstance, identifier);
+
+                var opts = new RelationshipResolverOptions()
+                {
+                    with_all_suggests = false,
+                    with_recommends = true,
+                    with_suggests = false,
+                    without_toomanyprovides_kraken = true
+                };
+
+                SetStatus(String.Format("Installing {0} using CKAN", identifier));
+                installer.User = new NullUser();
+
+                bool success = false;
+                while (!success)
+                {
+                    try
+                    {
+                        installer.InstallList(new List<string>() { identifier }, opts);
+                        success = true;
+                    }
+                    catch (FileExistsKraken ex)
+                    {
+                        File.Delete(Path.Combine(Main.Instance.CurrentInstance.GameDir(), ex.filename));
+                    }
+                    catch (Exception ex)
+                    {
+                        e.Result = ex;
+                        return;
+                    }
                 }
             }
         }
@@ -165,6 +169,8 @@ namespace MigrationToolPlugin
 
             Main.Instance.CurrentInstance.ScanGameData();
             RefreshModsList();
+            Main.Instance.UpdateRepo();
+            Main.Instance.Enabled = false;
             SetStatus("Waiting for user");
             SetProgress(0);
             Enabled = true;
@@ -200,13 +206,30 @@ namespace MigrationToolPlugin
 
         private void MigrateSelectedButton_Click(object sender, EventArgs e)
         {
-            if (PossibleMigrateModsListBox.SelectedItem == null)
+            if (PossibleMigrateModsListBox.SelectedItems.Count == 0)
             {
                 return;
             }
 
             Enabled = false;
-            m_BackgroundWorker.RunWorkerAsync((string)PossibleMigrateModsListBox.SelectedItem);
+            var mods = new List<string>();
+            foreach (var item in PossibleMigrateModsListBox.SelectedItems)
+            {
+                mods.Add((string)item);   
+            }
+
+            m_BackgroundWorker.RunWorkerAsync(mods);
+        }
+
+        private void MigrateAllButton_Click(object sender, EventArgs e)
+        {
+            var mods = new List<string>();
+            foreach (var item in PossibleMigrateModsListBox.Items)
+            {
+                mods.Add((string)item);
+            }
+
+            m_BackgroundWorker.RunWorkerAsync(mods);
         }
     }
 }

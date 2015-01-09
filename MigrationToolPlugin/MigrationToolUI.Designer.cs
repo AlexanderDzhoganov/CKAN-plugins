@@ -35,6 +35,7 @@
             this.MigrateSelectedButton = new System.Windows.Forms.Button();
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.StatusLabel = new System.Windows.Forms.Label();
+            this.MigrateAllButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // FoundModsLabel
@@ -99,11 +100,22 @@
             this.StatusLabel.TabIndex = 6;
             this.StatusLabel.Text = "Status: Waiting for user";
             // 
+            // MigrateAllButton
+            // 
+            this.MigrateAllButton.Location = new System.Drawing.Point(286, 93);
+            this.MigrateAllButton.Name = "MigrateAllButton";
+            this.MigrateAllButton.Size = new System.Drawing.Size(168, 23);
+            this.MigrateAllButton.TabIndex = 7;
+            this.MigrateAllButton.Text = "Migrate all";
+            this.MigrateAllButton.UseVisualStyleBackColor = true;
+            this.MigrateAllButton.Click += new System.EventHandler(this.MigrateAllButton_Click);
+            // 
             // MigrationToolUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(464, 369);
+            this.Controls.Add(this.MigrateAllButton);
             this.Controls.Add(this.StatusLabel);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.MigrateSelectedButton);
@@ -130,5 +142,6 @@
         private System.Windows.Forms.Button MigrateSelectedButton;
         private System.Windows.Forms.ProgressBar progressBar1;
         private System.Windows.Forms.Label StatusLabel;
+        private System.Windows.Forms.Button MigrateAllButton;
     }
 }

@@ -9,7 +9,7 @@ namespace MigrationToolPlugin
     public class MigrationToolPlugin : CKAN.IGUIPlugin
     {
 
-        private readonly CKAN.Version VERSION = new CKAN.Version("v1.0.0");
+        private readonly CKAN.Version VERSION = new CKAN.Version("v1.1.0");
 
         private MigrationToolUI m_Form = null;
         private ToolStripMenuItem m_MenuItem = null;
