@@ -75,7 +75,7 @@ namespace MigrationToolPlugin
             SetStatus("Starting mod migration process");
             SetProgressMarquee();
 
-            var registry = Main.Instance.CurrentInstance.Registry;
+            var registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
 
             var identifiers =
                 (List<string>)e.Argument;
@@ -86,7 +86,7 @@ namespace MigrationToolPlugin
 
                 try
                 {
-                    module = registry.LatestAvailable(identifier, Main.Instance.CurrentInstance.Version());
+                    module = registry.LatestAvailable(identifier, Main.Instance.CurrentInstance.VersionCriteria());
                 }
                 catch (Exception ex)
                 {
@@ -100,7 +100,7 @@ namespace MigrationToolPlugin
                     return;
                 }
 
-                var installer = ModuleInstaller.GetInstance(Main.Instance.CurrentInstance, Main.Instance.m_User);
+                var installer = ModuleInstaller.GetInstance(Main.Instance.CurrentInstance, Main.Instance.currentUser);
                 SetStatus(String.Format("Downloading mod - {0}", identifier));
                 string zip = installer.CachedOrDownload(module);
 
@@ -170,11 +170,11 @@ namespace MigrationToolPlugin
                 var ex = e.Result as Exception;
                 if (ex is InconsistentKraken)
                 {
-                    Main.Instance.m_User.RaiseError("Error: {0}", (ex as InconsistentKraken).InconsistenciesPretty);
+                    Main.Instance.currentUser.RaiseError("Error: {0}", (ex as InconsistentKraken).InconsistenciesPretty);
                 }
                 else
                 {
-                    Main.Instance.m_User.RaiseError("Error: {0}", ex.Message);
+                    Main.Instance.currentUser.RaiseError("Error: {0}", ex.Message);
                 }
             }
 
@@ -188,14 +188,14 @@ namespace MigrationToolPlugin
 
         List<string> GetAutodetectedMods()
         {
-            var registry = Main.Instance.CurrentInstance.Registry;
+            var registry = RegistryManager.Instance(Main.Instance.CurrentInstance).registry;
 
             List<string> autodetected = new List<string>();
             foreach (var dll in registry.InstalledDlls)
             {
                 try
                 {
-                    if (registry.LatestAvailable(dll, Main.Instance.CurrentInstance.Version()) != null)
+                    if (registry.LatestAvailable(dll, Main.Instance.CurrentInstance.VersionCriteria()) != null)
                     {
                         autodetected.Add(dll);
                     }
